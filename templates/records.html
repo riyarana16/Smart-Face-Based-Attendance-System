@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Attendance Records</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+        <div class="logo">
+            Smart Attendance
+        </div>
+
+        <a href="/">
+            🏠 Dashboard
+        </a>
+
+        <a href="/register">
+            👨‍🎓 Register Student
+        </a>
+
+        <a href="/attendance">
+            📷 Live Attendance
+        </a>
+
+        <a href="/records">
+            📊 Attendance Records
+        </a>
+
+    </aside>
+
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+
+        <div class="topbar">
+
+            <h1>
+                Attendance Records
+            </h1>
+
+            <a href="/download/attendance"
+               class="btn">
+                📥 Download Excel
+            </a>
+
+        </div>
+
+
+        <div class="section">
+
+            <h2>
+                Attendance History
+            </h2>
+
+            <br>
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Student Name</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% if attendance %}
+
+                        {% for record in attendance %}
+
+                        <tr>
+
+                            <td>
+                                {{ record["student_id"] }}
+                            </td>
+
+                            <td>
+                                {{ record["name"] }}
+                            </td>
+
+                            <td>
+                                {{ record["date"] }}
+                            </td>
+
+                            <td>
+                                {{ record["time"] }}
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <tr>
+
+                            <td colspan="4"
+                                style="text-align: center; padding: 30px;">
+
+                                No attendance records found.
+
+                            </td>
+
+                        </tr>
+
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </main>
+
+</div>
+
+</body>
+</html>

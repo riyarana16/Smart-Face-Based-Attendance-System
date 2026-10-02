@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Live Attendance</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+        <div class="logo">
+            Smart Attendance
+        </div>
+
+        <a href="/">
+            🏠 Dashboard
+        </a>
+
+        <a href="/register">
+            👨‍🎓 Register Student
+        </a>
+
+        <a href="/attendance">
+            📷 Live Attendance
+        </a>
+
+        <a href="/records">
+            📊 Attendance Records
+        </a>
+
+    </aside>
+
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+
+        <div class="topbar">
+
+            <h1>
+                Live Attendance
+            </h1>
+
+        </div>
+
+
+        <!-- CAMERA SECTION -->
+        <div class="section">
+
+            <h2>
+                Multi-Face Attendance
+            </h2>
+
+            <p>
+                Multiple registered students can appear in the
+                camera at the same time.
+            </p>
+
+            <br>
+
+            <video id="video"
+                   width="700"
+                   height="450"
+                   autoplay
+                   playsinline>
+            </video>
+
+            <br>
+
+            <button class="btn"
+                    onclick="startAttendance()">
+                📷 Start Attendance
+            </button>
+
+            <button class="btn"
+                    onclick="stopAttendance()">
+                ⏹ Stop Attendance
+            </button>
+
+            <p id="status"></p>
+
+        </div>
+
+
+        <br>
+
+
+        <!-- DETECTED STUDENTS -->
+        <div class="section">
+
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                margin-bottom:20px;
+            ">
+
+                <h2>
+                    Detected Students
+                </h2>
+
+                <div id="faceCount">
+                    Faces: 0
+                </div>
+
+            </div>
+
+
+            <div id="result">
+
+                <p>
+                    No student detected yet.
+                </p>
+
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<script>
+
+let stream = null;
+
+let attendanceRunning = false;
+
+let intervalId = null;
+
+
+// =====================================================
+// START CAMERA
+// =====================================================
+
+async function startAttendance() {
+
+    try {
+
+        stream = await navigator.mediaDevices.getUserMedia({
+
+            video: {
+                width: {
+                    ideal: 1280
+                },
+
+                height: {
+                    ideal: 720
+                }
+            },
+
+            audio: false
+
+        });
+
+
+        const video =
+            document.getElementById("video");
+
+        video.srcObject = stream;
+
+
+        attendanceRunning = true;
+
+
+        document.getElementById("status")
+            .innerText =
+            "Attendance started. Multiple students can stand in front of the camera.";
+
+
+        // Send frame every 1 second
+        intervalId =
+            setInterval(sendFrame, 1000);
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        document.getElementById("status")
+            .innerText =
+            "Camera permission denied or camera not available.";
+
+    }
+
+}
+
+
+// =====================================================
+// SEND CAMERA FRAME
+// =====================================================
+
+async function sendFrame() {
+
+    if (!attendanceRunning) {
+
+        return;
+
+    }
+
+
+    const video =
+        document.getElementById("video");
+
+
+    if (
+        video.videoWidth === 0 ||
+        video.videoHeight === 0
+    ) {
+
+        return;
+
+    }
+
+
+    const canvas =
+        document.createElement("canvas");
+
+
+    canvas.width =
+        video.videoWidth;
+
+    canvas.height =
+        video.videoHeight;
+
+
+    const context =
+        canvas.getContext("2d");
+
+
+    context.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    const image =
+        canvas.toDataURL("image/jpeg");
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/predict",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        image: image
+                    })
+                }
+            );
+
+
+        const result =
+            await response.json();
+
+
+        if (!result.success) {
+
+            document.getElementById("result")
+                .innerHTML = `
+                    <p>
+                        ${result.message}
+                    </p>
+                `;
+
+            return;
+
+        }
+
+
+        displayResults(
+            result.faces
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        document.getElementById("result")
+            .innerHTML = `
+                <p>
+                    Unable to connect to server.
+                </p>
+            `;
+
+    }
+
+}
+
+
+// =====================================================
+// DISPLAY MULTIPLE FACE RESULTS
+// =====================================================
+
+function displayResults(faces) {
+
+    const result =
+        document.getElementById("result");
+
+
+    const faceCount =
+        document.getElementById("faceCount");
+
+
+    // No faces
+    if (
+        !faces ||
+        faces.length === 0
+    ) {
+
+        faceCount.innerText =
+            "Faces: 0";
+
+
+        result.innerHTML = `
+            <div style="
+                padding:20px;
+                background:#f9fafb;
+                border-radius:10px;
+            ">
+
+                <h3>
+                    No face detected
+                </h3>
+
+                <p>
+                    Please look toward the camera.
+                </p>
+
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    // Show number of faces
+    faceCount.innerText =
+        "Faces: " + faces.length;
+
+
+    let html = "";
+
+
+    // Process every face
+    faces.forEach(
+        (face, index) => {
+
+            // ==========================================
+            // UNKNOWN STUDENT
+            // ==========================================
+
+            if (
+                face.name === "Unknown"
+            ) {
+
+                html += `
+
+                    <div style="
+                        padding:20px;
+                        margin-bottom:15px;
+                        border-radius:12px;
+                        background:#fff7ed;
+                        border:1px solid #fed7aa;
+                    ">
+
+                        <h3>
+                            👤 Face ${index + 1}
+                        </h3>
+
+                        <p>
+                            <b>Status:</b>
+                            Unknown Student
+                        </p>
+
+                        <p>
+                            This student is not registered.
+                        </p>
+
+                    </div>
+
+                `;
+
+                return;
+
+            }
+
+
+            // ==========================================
+            // ATTENDANCE MARKED
+            // ==========================================
+
+            if (face.marked) {
+
+                html += `
+
+                    <div style="
+                        padding:20px;
+                        margin-bottom:15px;
+                        border-radius:12px;
+                        background:#ecfdf5;
+                        border:1px solid #a7f3d0;
+                    ">
+
+                        <h3>
+                            ✅ Attendance Marked
+                        </h3>
+
+                        <p>
+                            <b>Student ID:</b>
+                            ${face.id}
+                        </p>
+
+                        <p>
+                            <b>Name:</b>
+                            ${face.name}
+                        </p>
+
+                        <p>
+                            <b>Confidence:</b>
+                            ${face.confidence}
+                        </p>
+
+                    </div>
+
+                `;
+
+            }
+
+
+            // ==========================================
+            // ALREADY MARKED
+            // ==========================================
+
+            else {
+
+                html += `
+
+                    <div style="
+                        padding:20px;
+                        margin-bottom:15px;
+                        border-radius:12px;
+                        background:#eff6ff;
+                        border:1px solid #bfdbfe;
+                    ">
+
+                        <h3>
+                            ℹ️ Already Marked Today
+                        </h3>
+
+                        <p>
+                            <b>Student ID:</b>
+                            ${face.id}
+                        </p>
+
+                        <p>
+                            <b>Name:</b>
+                            ${face.name}
+                        </p>
+
+                    </div>
+
+                `;
+
+            }
+
+        }
+    );
+
+
+    result.innerHTML =
+        html;
+
+}
+
+
+// =====================================================
+// STOP ATTENDANCE
+// =====================================================
+
+function stopAttendance() {
+
+    attendanceRunning =
+        false;
+
+
+    // Stop interval
+    if (intervalId) {
+
+        clearInterval(
+            intervalId
+        );
+
+        intervalId =
+            null;
+
+    }
+
+
+    // Stop camera
+    if (stream) {
+
+        stream
+            .getTracks()
+            .forEach(
+                track => track.stop()
+            );
+
+        stream =
+            null;
+
+    }
+
+
+    document.getElementById("video")
+        .srcObject =
+        null;
+
+
+    document.getElementById("status")
+        .innerText =
+        "Attendance stopped.";
+
+
+    document.getElementById("faceCount")
+        .innerText =
+        "Faces: 0";
+
+
+    document.getElementById("result")
+        .innerHTML = `
+            <p>
+                Attendance session stopped.
+            </p>
+        `;
+
+}
+
+</script>
+
+</body>
+</html>

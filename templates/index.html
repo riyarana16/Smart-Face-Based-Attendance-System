@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Smart Face Attendance</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+        <div class="logo">
+            Smart Attendance
+        </div>
+
+        <a href="/">
+            🏠 Dashboard
+        </a>
+
+        <a href="/register">
+            👨‍🎓 Register Student
+        </a>
+
+        <a href="/attendance">
+            📷 Live Attendance
+        </a>
+
+        <a href="/records">
+            📊 Attendance Records
+        </a>
+
+    </aside>
+
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+
+        <!-- TOP BAR -->
+        <div class="topbar">
+
+            <h1>
+                Dashboard
+            </h1>
+
+            <a href="/attendance"
+               class="btn">
+                📷 Start Attendance
+            </a>
+
+        </div>
+
+
+        <!-- HERO -->
+        <div class="hero">
+
+            <h2>
+                Smart Face-Based Attendance System
+            </h2>
+
+            <p>
+                Manage students and record attendance using
+                automated face-based identification.
+            </p>
+
+            <a href="/register"
+               class="btn">
+                👨‍🎓 Register Student
+            </a>
+
+        </div>
+
+
+        <!-- DASHBOARD CARDS -->
+        <div class="cards">
+
+            <!-- TOTAL STUDENTS -->
+            <div class="card">
+
+                <h3>
+                    Total Students
+                </h3>
+
+                <div class="number"
+                     id="studentCount">
+                    0
+                </div>
+
+            </div>
+
+
+            <!-- TOTAL ATTENDANCE -->
+            <div class="card">
+
+                <h3>
+                    Total Attendance
+                </h3>
+
+                <div class="number"
+                     id="attendanceCount">
+                    0
+                </div>
+
+            </div>
+
+
+            <!-- TODAY ATTENDANCE -->
+            <div class="card">
+
+                <h3>
+                    Today's Attendance
+                </h3>
+
+                <div class="number"
+                     id="todayCount">
+                    0
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- SYSTEM STATUS -->
+        <div class="section">
+
+            <h2>
+                System Status
+            </h2>
+
+            <br>
+
+            <p>
+                🟢
+                <b>System:</b>
+                Active
+            </p>
+
+            <br>
+
+            <p>
+                🟢
+                <b>Camera:</b>
+                Ready
+            </p>
+
+            <br>
+
+            <p>
+                🟢
+                <b>Attendance System:</b>
+                Ready
+            </p>
+
+        </div>
+
+
+        <br>
+
+
+        <!-- RECENT ATTENDANCE -->
+        <div class="section">
+
+            <div style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+            ">
+
+                <h2>
+                    Recent Attendance
+                </h2>
+
+                <a href="/records"
+                   class="btn">
+                    View All
+                </a>
+
+            </div>
+
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Student ID
+                        </th>
+
+                        <th>
+                            Student Name
+                        </th>
+
+                        <th>
+                            Date
+                        </th>
+
+                        <th>
+                            Time
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="recentAttendance">
+
+                    <tr>
+
+                        <td colspan="4"
+                            style="text-align:center;">
+                            Loading...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <br>
+
+
+        <!-- SYSTEM FEATURES -->
+        <div class="section">
+
+            <h2>
+                System Features
+            </h2>
+
+            <br>
+
+            <p>
+                👨‍🎓
+                <b>Student Registration</b>
+                — Register student details and capture face samples.
+            </p>
+
+            <br>
+
+            <p>
+                📷
+                <b>Live Attendance</b>
+                — Use the webcam to identify registered students
+                and mark attendance.
+            </p>
+
+            <br>
+
+            <p>
+                📊
+                <b>Attendance Records</b>
+                — View previously recorded attendance.
+            </p>
+
+            <br>
+
+            <p>
+                📥
+                <b>Excel Report</b>
+                — Download attendance records as an Excel file.
+            </p>
+
+        </div>
+
+
+        <br>
+
+
+        <!-- QUICK ACTIONS -->
+        <div class="section">
+
+            <h2>
+                Quick Actions
+            </h2>
+
+            <br>
+
+            <a href="/register"
+               class="btn">
+                👨‍🎓 Register Student
+            </a>
+
+            &nbsp;
+
+            <a href="/attendance"
+               class="btn">
+                📷 Start Attendance
+            </a>
+
+            &nbsp;
+
+            <a href="/download/attendance"
+               class="btn">
+                📥 Download Excel
+            </a>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<!-- JAVASCRIPT -->
+<script>
+
+async function loadDashboard() {
+
+    try {
+
+        // ==========================================
+        // GET STUDENTS
+        // ==========================================
+
+        const studentResponse =
+            await fetch("/api/students");
+
+        const students =
+            await studentResponse.json();
+
+        document.getElementById("studentCount")
+            .innerText = students.length;
+
+
+        // ==========================================
+        // GET ATTENDANCE
+        // ==========================================
+
+        const attendanceResponse =
+            await fetch("/api/attendance");
+
+        const attendance =
+            await attendanceResponse.json();
+
+        document.getElementById("attendanceCount")
+            .innerText = attendance.length;
+
+
+        // ==========================================
+        // TODAY'S ATTENDANCE
+        // ==========================================
+
+        const today =
+            new Date().toISOString().split("T")[0];
+
+        const todayAttendance =
+            attendance.filter(
+                record => record.date === today
+            );
+
+        document.getElementById("todayCount")
+            .innerText = todayAttendance.length;
+
+
+        // ==========================================
+        // RECENT ATTENDANCE
+        // ==========================================
+
+        const recentTable =
+            document.getElementById("recentAttendance");
+
+        recentTable.innerHTML = "";
+
+
+        if (attendance.length === 0) {
+
+            recentTable.innerHTML = `
+                <tr>
+                    <td colspan="4"
+                        style="text-align:center; padding:25px;">
+                        No attendance records found.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+
+        // Show latest 5 records
+        const recentRecords =
+            attendance.slice(0, 5);
+
+
+        recentRecords.forEach(record => {
+
+            const row =
+                document.createElement("tr");
+
+            row.innerHTML = `
+
+                <td>
+                    ${record.student_id}
+                </td>
+
+                <td>
+                    ${record.name}
+                </td>
+
+                <td>
+                    ${record.date}
+                </td>
+
+                <td>
+                    ${record.time}
+                </td>
+
+            `;
+
+            recentTable.appendChild(row);
+
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Dashboard error:",
+            error
+        );
+
+        document.getElementById("recentAttendance")
+            .innerHTML = `
+                <tr>
+                    <td colspan="4"
+                        style="text-align:center;">
+                        Unable to load attendance data.
+                    </td>
+                </tr>
+            `;
+    }
+}
+
+
+// Load dashboard when page opens
+loadDashboard();
+
+</script>
+
+</body>
+</html>

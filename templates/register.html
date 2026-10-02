@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Register Student</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+        <div class="logo">
+            Smart Attendance
+        </div>
+
+        <a href="/">
+            🏠 Dashboard
+        </a>
+
+        <a href="/register">
+            👨‍🎓 Register Student
+        </a>
+
+        <a href="/attendance">
+            📷 Live Attendance
+        </a>
+
+        <a href="/records">
+            📊 Attendance Records
+        </a>
+
+    </aside>
+
+
+    <!-- MAIN -->
+    <main class="main">
+
+        <div class="topbar">
+
+            <h1>
+                Register Student
+            </h1>
+
+        </div>
+
+
+        <div class="section">
+
+            <h2>
+                Student Details
+            </h2>
+
+            <br>
+
+
+            <!-- STUDENT ID -->
+
+            <label for="studentId">
+                Student ID
+            </label>
+
+            <input
+                type="number"
+                id="studentId"
+                placeholder="Enter Student ID"
+            >
+
+
+            <br><br>
+
+
+            <!-- STUDENT NAME -->
+
+            <label for="studentName">
+                Student Name
+            </label>
+
+            <input
+                type="text"
+                id="studentName"
+                placeholder="Enter Student Name"
+            >
+
+
+            <br><br>
+
+
+            <!-- REGISTER BUTTON -->
+
+            <button
+                type="button"
+                class="btn"
+                onclick="registerStudent()">
+
+                Register Student
+
+            </button>
+
+
+            <p id="message"></p>
+
+
+            <hr style="margin: 30px 0;">
+
+
+            <!-- CAMERA -->
+
+            <h2>
+                Face Sample Capture
+            </h2>
+
+            <p>
+                Position your face inside the camera frame.
+            </p>
+
+            <br>
+
+
+            <video
+                id="video"
+                width="500"
+                height="350"
+                autoplay
+                playsinline
+                style="
+                    background: black;
+                    border-radius: 12px;
+                    max-width: 100%;
+                ">
+            </video>
+
+
+            <br><br>
+
+
+            <button
+                type="button"
+                class="btn"
+                onclick="startCamera()">
+
+                Start Camera
+
+            </button>
+
+
+            <button
+                type="button"
+                class="btn"
+                onclick="stopCamera()">
+
+                Stop Camera
+
+            </button>
+
+
+            <p id="cameraMessage"></p>
+
+
+            <br>
+
+
+            <!-- CAPTURE -->
+
+            <button
+                type="button"
+                class="btn"
+                onclick="captureSamples()">
+
+                Capture 5 Samples
+
+            </button>
+
+
+            <p id="sampleMessage"></p>
+
+
+            <div id="progress">
+                Samples: 0 / 5
+            </div>
+
+
+            <br>
+
+
+            <!-- TRAIN -->
+
+            <button
+                type="button"
+                class="btn"
+                onclick="trainModel()">
+
+                Train Model
+
+            </button>
+
+
+            <p id="trainMessage"></p>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<script>
+
+// =====================================================
+// REGISTER STUDENT
+// =====================================================
+
+async function registerStudent() {
+
+    const id =
+        document.getElementById("studentId").value.trim();
+
+    const name =
+        document.getElementById("studentName").value.trim();
+
+    const message =
+        document.getElementById("message");
+
+
+    // Check empty fields
+    if (id === "" || name === "") {
+
+        message.innerText =
+            "Please enter Student ID and Name.";
+
+        return;
+    }
+
+
+    message.innerText =
+        "Registering student...";
+
+
+    try {
+
+        const response =
+            await fetch("/api/register", {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+
+                    id: id,
+
+                    name: name
+
+                })
+
+            });
+
+
+        const result =
+            await response.json();
+
+
+        if (result.success) {
+
+            message.innerText =
+                result.message;
+
+            message.style.color =
+                "green";
+
+        } else {
+
+            message.innerText =
+                result.message;
+
+            message.style.color =
+                "red";
+        }
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        message.innerText =
+            "Could not connect to server.";
+
+        message.style.color =
+            "red";
+    }
+
+}
+
+
+// =====================================================
+// CAMERA
+// =====================================================
+
+let stream = null;
+
+
+async function startCamera() {
+
+    try {
+
+        stream =
+            await navigator.mediaDevices.getUserMedia({
+
+                video: true,
+
+                audio: false
+
+            });
+
+
+        document.getElementById("video")
+            .srcObject = stream;
+
+
+        document.getElementById("cameraMessage")
+            .innerText =
+            "Camera started successfully.";
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        document.getElementById("cameraMessage")
+            .innerText =
+            "Camera permission denied or camera not available.";
+
+    }
+
+}
+
+
+// =====================================================
+// STOP CAMERA
+// =====================================================
+
+function stopCamera() {
+
+    if (stream) {
+
+        stream
+            .getTracks()
+            .forEach(track => track.stop());
+
+        stream = null;
+
+    }
+
+
+    document.getElementById("video")
+        .srcObject = null;
+
+
+    document.getElementById("cameraMessage")
+        .innerText =
+        "Camera stopped.";
+
+}
+
+
+// =====================================================
+// CAPTURE 5 SAMPLES
+// =====================================================
+
+async function captureSamples() {
+
+    const id =
+        document.getElementById("studentId")
+            .value.trim();
+
+
+    const sampleMessage =
+        document.getElementById("sampleMessage");
+
+
+    const progress =
+        document.getElementById("progress");
+
+
+    // Student ID check
+    if (id === "") {
+
+        sampleMessage.innerText =
+            "Please enter Student ID first.";
+
+        return;
+    }
+
+
+    // Camera check
+    if (!stream) {
+
+        sampleMessage.innerText =
+            "Please start the camera first.";
+
+        return;
+    }
+
+
+    const video =
+        document.getElementById("video");
+
+
+    const canvas =
+        document.createElement("canvas");
+
+
+    canvas.width =
+        video.videoWidth;
+
+    canvas.height =
+        video.videoHeight;
+
+
+    const context =
+        canvas.getContext("2d");
+
+
+    // Capture 5 images
+    for (let i = 1; i <= 5; i++) {
+
+        context.drawImage(
+
+            video,
+
+            0,
+            0,
+
+            canvas.width,
+            canvas.height
+
+        );
+
+
+        const image =
+            canvas.toDataURL("image/jpeg");
+
+
+        try {
+
+            const response =
+                await fetch("/api/capture", {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        id: id,
+
+                        image: image,
+
+                        image_number: i
+
+                    })
+
+                });
+
+
+            const result =
+                await response.json();
+
+
+            if (!result.success) {
+
+                sampleMessage.innerText =
+                    result.message;
+
+                return;
+            }
+
+
+            progress.innerText =
+                `Samples: ${i} / 5`;
+
+
+            sampleMessage.innerText =
+                result.message;
+
+
+            await new Promise(
+                resolve =>
+                    setTimeout(resolve, 300)
+            );
+
+        }
+
+        catch (error) {
+
+            console.error(error);
+
+            sampleMessage.innerText =
+                "Error while capturing samples.";
+
+            return;
+        }
+
+    }
+
+
+    sampleMessage.innerText =
+        "All 5 face samples captured successfully!";
+
+}
+
+
+// =====================================================
+// TRAIN MODEL
+// =====================================================
+
+async function trainModel() {
+
+    const trainMessage =
+        document.getElementById("trainMessage");
+
+
+    trainMessage.innerText =
+        "Training model... Please wait.";
+
+
+    try {
+
+        const response =
+            await fetch("/api/train", {
+
+                method: "POST"
+
+            });
+
+
+        const result =
+            await response.json();
+
+
+        if (result.success) {
+
+            trainMessage.innerText =
+                result.message;
+
+            trainMessage.style.color =
+                "green";
+
+        } else {
+
+            trainMessage.innerText =
+                result.message;
+
+            trainMessage.style.color =
+                "red";
+        }
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        trainMessage.innerText =
+            "Training failed.";
+
+        trainMessage.style.color =
+            "red";
+    }
+
+}
+
+</script>
+
+</body>
+</html>

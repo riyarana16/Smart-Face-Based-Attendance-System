@@ -1,0 +1,6 @@
+dataset/
+trainer/
+attendance/
+database.db
+__pycache__/
+*.pyc
